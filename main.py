@@ -3,9 +3,8 @@ import time
 import os
 from dotenv import load_dotenv
 from modules.clicar_imagem import clicar_imagem
-from modules.centro_de_custo import automacao_centro_de_custo
+from modules.razao import automacao_razao
 from modules.calcular_competencia import calcular_competencia
-from modules.consumo import automacao_consumo
 from modules.conectar_vpn import conectar_vpn
 from modules.abrir_app_agent import habilitar_app_agent
 
@@ -98,11 +97,8 @@ if __name__ == "__main__":
     
     time.sleep(3)
 
-    # inicia a execução da automação de consumo
-    automacao_consumo(competencia_anterior)
-
     # inicia a execução da automação de centro de custo
-    automacao_centro_de_custo(competencia_anterior)
+    automacao_razao(competencia_anterior)
 
     # fechar o app, final da automação
     print("Automação concluída com sucesso!")

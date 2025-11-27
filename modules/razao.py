@@ -6,11 +6,11 @@ from datetime import datetime
 from modules.aguardar_download_inteligente import aguardar_download_completo, fechar_excel
 import os
 
-def automacao_centro_de_custo(competencia):
+def automacao_razao(competencia):
     """
     Automação para download do relatório de centro de custo
     """ 
-    print("🚀Iniciando automação do centro de custo...")
+    print("🚀Iniciando automação razão...")
     # no menu a oção "Relatórios"
     if not clicar_imagem("data/menu_relatorios.png", confidence=0.8, timeout=15, descricao="Menu Relatórios"):
         print("Erro ao acessar o menu Relatórios.")
@@ -117,7 +117,7 @@ def automacao_centro_de_custo(competencia):
         data = datetime.strptime(competencia, "%d/%m/%Y")
         ano = data.year
         mes = data.month
-        caminho_fixo = os.getenv("CAMINHO_FIXO_CC")
+        caminho_fixo = os.getenv("CAMINHO_FIXO_RAZAO")
         caminho_fixo_completo = f"{caminho_fixo}\\{ano}\\{mes}_{ano}"
         print(f"📂 Caminho: {caminho_fixo_completo}")
 
