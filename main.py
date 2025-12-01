@@ -50,13 +50,13 @@ if __name__ == "__main__":
     # aguardar o programa abrir
     time.sleep(10)
 
-    # expandir a tel
-    pyautogui.press('f11')
+    # # expandir a tel
+    # pyautogui.press('f11')
 
     # clicar entrar para configurar
     pyautogui.press('enter')
 
-    time.sleep(5)
+    time.sleep(10)
 
     habilitar_app_agent()
 
