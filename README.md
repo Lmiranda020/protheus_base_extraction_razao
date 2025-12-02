@@ -4,7 +4,7 @@
 
 Sistema de automação desenvolvido para otimizar o processo de geração e salvamento de relatórios de razão contábil no sistema corporativo da empresa.
 
-### 👨‍💻 Desenvolvedora
+### 👨‍💻 Desenvolvedor
 **Larissa Miranda**
 
 ---
@@ -71,24 +71,15 @@ Esta automação resolve todos os problemas mencionados através de:
    - Salva arquivos com nomenclatura padronizada
    - Organiza documentos em estrutura de pastas definida
 
-6. **Logout e Finalização Seguros**
+6. **Conversão Automática de Arquivos**
+   - Converte arquivos XML (formato original de download) para XLSX
+   - Remove arquivos XML após conversão bem-sucedida
+   - Mantém apenas os arquivos Excel finalizados
+
+7. **Logout e Finalização Seguros**
    - Encerra sessão adequadamente
    - Fecha aplicações abertas
    - Limpa recursos utilizados
-
-## 🎯 Como Usar
-
-### Fluxo de Execução
-
-1. Sistema calcula competência anterior automaticamente
-2. Conecta à VPN corporativa
-3. Abre aplicação corporativa
-4. Realiza login com credenciais do .env
-5. Habilita App Agent
-6. Executa rotina de geração de razão contábil
-7. Salva relatórios padronizados
-8. Realiza logout seguro
-9. Fecha aplicações e finaliza
 
 ---
 
@@ -123,17 +114,9 @@ Essa abordagem evita que o Agendador de Tarefas encerre a automação prematuram
 - ⏱️ **Redução de 80% no tempo** de processamento
 - 📁 **100% de padronização** em nomenclatura de arquivos
 - ✅ **Zero erros** de digitação ou esquecimento
+- 📊 **Arquivos entregues em formato Excel** prontos para uso (conversão automática de XML)
 - 🔍 **Facilidade na busca** de relatórios históricos
 - 👥 **Liberação de tempo** da equipe para atividades estratégicas
-
----
-
-## 🛡️ Segurança
-
-- Credenciais armazenadas em variáveis de ambiente (nunca hardcoded)
-- Conexão VPN obrigatória para acesso ao sistema
-- Logout automático ao final da execução
-- Tratamento de erros com interrupção segura do processo
 
 ---
 
