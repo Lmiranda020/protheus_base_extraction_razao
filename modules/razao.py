@@ -152,6 +152,10 @@ def automacao_razao(competencia):
         caminho_fixo = os.getenv("CAMINHO_FIXO_RAZAO")
         caminho_fixo_completo = f"{caminho_fixo}\\{ano}\\{mes}_{ano}"
         caminho_fixo_completo_com_filial = f"{caminho_fixo_completo}\\Razao_Filial_{filial}"
+
+        # vefificar se não existe o diretório, se não existir criar
+        if not os.path.exists(caminho_fixo_completo):
+            os.makedirs(caminho_fixo_completo)
         
         print(f"📂 Caminho completo: {caminho_fixo_completo}")
         print(f"📝 Nome do arquivo: Razao_Filial_{filial}")
