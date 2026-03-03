@@ -180,7 +180,7 @@ def automacao_razao(competencia):
             print("Erro ao clicar no botão fechar.")
             return
         
-        time.sleep(5)  # Aguarda um pouco antes de monitorar
+        time.sleep(10)  # Aguarda um pouco antes de monitorar
         
         # Aguarda download e converte para Excel
         # Passa o diretório (sem nome do arquivo) e o nome esperado do arquivo
