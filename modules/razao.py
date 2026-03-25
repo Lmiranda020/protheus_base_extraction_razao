@@ -149,6 +149,8 @@ def automacao_razao(competencia):
         data = datetime.strptime(competencia, "%d/%m/%Y")
         ano = data.year
         mes = data.month
+        if len(str(mes)) == 1:
+            mes = f"0{mes}"
         caminho_fixo = os.getenv("CAMINHO_FIXO_RAZAO")
         caminho_fixo_completo = f"{caminho_fixo}\\{ano}\\{mes}_{ano}"
         caminho_fixo_completo_com_filial = f"{caminho_fixo_completo}\\Razao_Filial_{filial}"
