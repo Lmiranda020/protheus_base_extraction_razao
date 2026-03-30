@@ -5,7 +5,7 @@ from pathlib import Path
 import win32com.client
 import pythoncom
 
-def verificar_e_aguardar_excel_aberto(timeout=120, intervalo=3):
+def verificar_e_aguardar_excel_aberto(timeout=320, intervalo=3):
     """
     Aguarda o Excel abrir por até 'timeout' segundos,
     verificando a cada 'intervalo' segundos.
@@ -208,7 +208,7 @@ def aguardar_download_completo(diretorio_temp, nome_arquivo_esperado, timeout=20
     time.sleep(3)
     
     # Fase 3: Aguarda o Excel abrir e depois fecha
-    if verificar_e_aguardar_excel_aberto(timeout=120, intervalo=3):
+    if verificar_e_aguardar_excel_aberto(timeout=320, intervalo=3):
         print("🔄 Fechando Excel aberto em background...")
         fechar_excel()
         time.sleep(6)  # aguarda o Windows liberar o handle do arquivo
