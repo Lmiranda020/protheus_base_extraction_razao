@@ -5,16 +5,29 @@ from pathlib import Path
 import win32com.client
 import pythoncom
 
-def verificar_excel_aberto():
-    """Verifica se há alguma instância do Excel aberta"""
-    try:
-        for proc in psutil.process_iter(['name']):
-            if proc.info['name'] and 'EXCEL.EXE' in proc.info['name'].upper():
-                return True
-        return False
-    except Exception as e:
-        print(f"Erro ao verificar Excel: {e}")
-        return False
+def verificar_e_aguardar_excel_aberto(timeout=120, intervalo=3):
+    """
+    Aguarda o Excel abrir por até 'timeout' segundos,
+    verificando a cada 'intervalo' segundos.
+    Retorna True se encontrou, False se esgotou o tempo.
+    """
+    print(f"⏳ Aguardando Excel abrir (timeout: {timeout}s)...")
+    tempo_inicio = time.time()
+
+    while (time.time() - tempo_inicio) < timeout:
+        try:
+            for proc in psutil.process_iter(['name']):
+                if proc.info['name'] and 'EXCEL.EXE' in proc.info['name'].upper():
+                    print(f"✅ Excel detectado após {(time.time() - tempo_inicio):.1f}s")
+                    return True
+        except Exception as e:
+            print(f"⚠️ Erro ao verificar Excel: {e}")
+
+        time.sleep(intervalo)
+        print(f"🔍 Excel ainda não abriu... {int(time.time() - tempo_inicio)}s / {timeout}s")
+
+    print(f"⚠️ Excel não foi detectado após {timeout}s")
+    return False
 
 def tem_extensao(arquivo):
     """Verifica se um arquivo tem extensão"""
@@ -49,7 +62,7 @@ def converter_para_excel_com_win32(arquivo_origem, nome_arquivo_destino, diretor
         pythoncom.CoInitialize()
         
         # Abre o Excel em modo invisível
-        excel = win32com.client.Dispatch("Excel.Application")
+        excel = win32com.client.gencache.EnsureDispatch("Excel.Application")
         excel.Visible = False
         excel.DisplayAlerts = False
         
@@ -194,11 +207,13 @@ def aguardar_download_completo(diretorio_temp, nome_arquivo_esperado, timeout=20
     print("⏳ Aguardando estabilização do arquivo...")
     time.sleep(3)
     
-    # Fase 3: Fecha Excel se estiver aberto
-    if verificar_excel_aberto():
+    # Fase 3: Aguarda o Excel abrir e depois fecha
+    if verificar_e_aguardar_excel_aberto(timeout=120, intervalo=3):
         print("🔄 Fechando Excel aberto em background...")
         fechar_excel()
-        time.sleep(3)
+        time.sleep(6)  # aguarda o Windows liberar o handle do arquivo
+    else:
+        print("⚠️ Excel não detectado, seguindo para conversão mesmo assim...")
     
     # Fase 4: Converte o arquivo usando Excel nativo
     nome_base_original = os.path.splitext(os.path.basename(arquivo_novo))[0]

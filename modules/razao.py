@@ -88,16 +88,18 @@ def automacao_razao(competencia):
         pyautogui.press('backspace')
         competencia_inicio = f"01/{competencia[3:]}"
         pyautogui.typewrite(competencia_inicio, interval=0.2)
+        time.sleep(2)
 
         # escreve a competencia final
         # apaga o conteúdo do campo 
         pyautogui.press('backspace')
         pyautogui.typewrite(competencia, interval=0.2)        
+        time.sleep(2)
 
         # clicar duas vezes o tab
         pyautogui.press('backspace')
         pyautogui.press('tab', presses=1, interval=0.5)
-
+        time.sleep(2)
 
         #digitar zzzzz
         pyautogui.keyDown('ctrl')
@@ -105,43 +107,52 @@ def automacao_razao(competencia):
         pyautogui.keyUp('ctrl')
         pyautogui.press('backspace', presses=1, interval=0.1)
         pyautogui.typewrite("zzzzzz", interval=0.2)
-
+        time.sleep(2)
 
         pyautogui.keyDown('ctrl')
         pyautogui.press('a')
         pyautogui.keyUp('ctrl')
         pyautogui.press('backspace', presses=1, interval=0.1)
         pyautogui.typewrite("4", interval=0.2)
+        time.sleep(2)
 
         # clicar duas vezes o tab
         pyautogui.press('tab', presses=1, interval=0.5)
+        time.sleep(2)
 
+        
         pyautogui.keyDown('ctrl')
         pyautogui.press('a')
         pyautogui.keyUp('ctrl')
         pyautogui.press('backspace', presses=1, interval=0.1)
         pyautogui.typewrite("5", interval=0.2)
+        time.sleep(2)
 
         # dar um tab
         pyautogui.press('tab', presses=1, interval=0.5)
         pyautogui.press('backspace', presses=1, interval=0.1)
-        
+        time.sleep(2)
+
         pyautogui.press('tab', presses=1, interval=0.5)
         pyautogui.press('backspace', presses=1, interval=0.1)
         pyautogui.typewrite("zzzzzzzzzzzzzzz", interval=0.2)
+        time.sleep(2)
 
         if not clicar_imagem("data/botao_diretorio.png", confidence=0.8, timeout=15, descricao="Botão diretório"):
             print("Erro ao clicar no botão para selecionar diretório.")
             return
+        time.sleep(2)
 
         if not clicar_imagem("data/nome_diretorio.png", confidence=0.8, timeout=15, descricao="Botão nome diretorio"):
             print("Erro ao clicar no botão para selecionar nome diretório.")
             return
-        
+        time.sleep(2)
+
         pyautogui.keyDown('ctrl')
         pyautogui.press('a')
         pyautogui.keyUp('ctrl')
         pyautogui.press('backspace', presses=1, interval=0.1)
+        time.sleep(2)
 
         # pyautogui.press('tab', presses=1, interval=0.5)
 
@@ -154,6 +165,7 @@ def automacao_razao(competencia):
         caminho_fixo = os.getenv("CAMINHO_FIXO_RAZAO")
         caminho_fixo_completo = f"{caminho_fixo}\\{ano}\\{mes}_{ano}"
         caminho_fixo_completo_com_filial = f"{caminho_fixo_completo}\\Razao_Filial_{filial}"
+        time.sleep(2)
 
         # vefificar se não existe o diretório, se não existir criar
         if not os.path.exists(caminho_fixo_completo):
@@ -161,7 +173,8 @@ def automacao_razao(competencia):
         
         print(f"📂 Caminho completo: {caminho_fixo_completo}")
         print(f"📝 Nome do arquivo: Razao_Filial_{filial}")
-
+        time.sleep(2)
+        
         # digita o caminho completo (pasta + nome do arquivo)
         pyautogui.press('backspace', presses=1, interval=0.1)
         pyautogui.typewrite(caminho_fixo_completo_com_filial, interval=0.1)
@@ -178,23 +191,22 @@ def automacao_razao(competencia):
             print("Erro ao clicar no botão Salvar Arquivo na janela de salvar.")
             return
 
-        print("🔍 Aguardando conclusão do download...")
-
-        time.sleep(8)
+        print("🔍 Aguardando conclusão do download...")    
+        
+        time.sleep(3)
         print(f"Clicando em fechar...")
         if not clicar_imagem("data/botao_fechar.png", confidence=0.8, timeout=15, descricao="Botão Fechar"):
             print("Erro ao clicar no botão fechar.")
             return
-        
-        time.sleep(10)  # Aguarda um pouco antes de monitorar
+        time.sleep(3)  # Aguarda um pouco antes de monitorar
         
         # Aguarda download e converte para Excel
         # Passa o diretório (sem nome do arquivo) e o nome esperado do arquivo
         sucesso, arquivo_baixado, tempo_gasto = aguardar_download_completo(
             diretorio_temp=caminho_fixo_completo,
             nome_arquivo_esperado=f"Razao_Filial_{filial}",
-            timeout=100,  
-            intervalo_verificacao=2
+            timeout=900,  
+            intervalo_verificacao=3
         )
         
         if not sucesso:
