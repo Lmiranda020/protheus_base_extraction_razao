@@ -19,6 +19,8 @@ def verificar_e_aguardar_excel_aberto(timeout=320, intervalo=3):
             for proc in psutil.process_iter(['name']):
                 if proc.info['name'] and 'EXCEL.EXE' in proc.info['name'].upper():
                     print(f"✅ Excel detectado após {(time.time() - tempo_inicio):.1f}s")
+                    # aguaradr um pouco para garantir que o Excel tenha aberto completamente
+                    time.sleep(10)
                     return True
         except Exception as e:
             print(f"⚠️ Erro ao verificar Excel: {e}")
