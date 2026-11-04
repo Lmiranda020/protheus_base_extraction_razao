@@ -16,7 +16,8 @@ def conectar_vpn():
     time.sleep(2)
 
     # Verifica se a VPN já está conectada
-    vpn_conectada = localizar_imagem("data/VPN_conectada.png", confidence=0.8, timeout=15, descricao="Botão vpn conectada")
+    vpn_conectada = localizar_imagem("data/VPN_conectada.png", confidence=0.8, timeout=15, descricao="Botão vpn conectada",
+                                     screenshot_se_falhar=False)
 
     if vpn_conectada:
         print("VPN já está conectada")

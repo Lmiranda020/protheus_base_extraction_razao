@@ -32,8 +32,12 @@ def _montar_html(resumo: dict) -> str:
     ok_lst     = resumo["filiais_ok"]
     err_lst    = resumo["filiais_err"]
 
-    status_geral = "CONCLUÍDA COM SUCESSO ✅" if n_err == 0 else "CONCLUÍDA COM ERROS ⚠️"
-    cor_status   = "#2e7d32" if n_err == 0 else "#b71c1c"
+    sucesso_total = n_err == 0 and total > 0
+    if total == 0:
+        status_geral = "NENHUMA FILIAL PROCESSADA ❌"
+    else:
+        status_geral = "CONCLUÍDA COM SUCESSO ✅" if sucesso_total else "CONCLUÍDA COM ERROS ⚠️"
+    cor_status   = "#2e7d32" if sucesso_total else "#b71c1c"
     pct_ok       = round(n_ok / total * 100) if total else 0
 
     barra_ok  = f"<div style='width:{pct_ok}%;background:#43a047;height:100%;border-radius:4px'></div>"
@@ -209,7 +213,10 @@ def enviar_email_resultado(resumo: dict) -> bool:
     tipo        = resumo["tipo"]
     n_err       = resumo["erros"]
     competencia = resumo["competencia"]
-    status_subj = "✅ Sucesso" if n_err == 0 else f"⚠️ {n_err} erro(s)"
+    if resumo["total"] == 0:
+        status_subj = "❌ Nenhuma filial processada"
+    else:
+        status_subj = "✅ Sucesso" if n_err == 0 else f"⚠️ {n_err} erro(s)"
     assunto     = f"Extração automática {tipo} — {competencia} — {status_subj}"
 
     msg = MIMEMultipart("alternative")

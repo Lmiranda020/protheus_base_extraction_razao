@@ -124,12 +124,16 @@ class LogExecucao:
         mensagem: str = "",
         inicio_filial: datetime = None,
     ) -> None:
-        """Registra o resultado de uma filial no buffer."""
+        """
+        Registra o resultado de uma filial no buffer.
+        Se a filial já foi registrada (ex.: nova tentativa), substitui o registro anterior.
+        """
         fim      = datetime.now()
         inicio_f = inicio_filial or fim
         tempo    = round((fim - inicio_f).total_seconds(), 1)
         status   = "✅ Sucesso" if sucesso else "❌ Erro"
 
+        self._registros = [r for r in self._registros if r[4] != filial]
         self._registros.append((
             inicio_f.strftime("%d/%m/%Y %H:%M:%S"),
             fim.strftime("%d/%m/%Y %H:%M:%S"),
@@ -143,11 +147,23 @@ class LogExecucao:
         print(f"  {'✅' if sucesso else '❌'} Filial {filial} registrada no log "
               f"({tempo}s) — {status}")
 
-    def finalizar_execucao(self) -> dict:
+    def filiais_registradas(self) -> set:
+        """Retorna as filiais que já possuem registro no buffer."""
+        return {r[4] for r in self._registros}
+
+    def finalizar_execucao(self, mensagem_nao_processada: str = "Filial não processada") -> dict:
         """
         Persiste todos os registros no Excel e retorna um dicionário-resumo
         para ser usado no e-mail.
+
+        Filiais previstas em iniciar_execucao que não foram registradas
+        (ex.: a automação parou antes de chegar nelas) entram como erro.
         """
+        registradas = self.filiais_registradas()
+        for filial in self.filiais:
+            if filial not in registradas:
+                self.registrar_filial(filial, sucesso=False, mensagem=mensagem_nao_processada)
+
         fim_geral = datetime.now()
         self._salvar_no_excel()
 
