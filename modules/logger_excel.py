@@ -165,7 +165,11 @@ class LogExecucao:
                 self.registrar_filial(filial, sucesso=False, mensagem=mensagem_nao_processada)
 
         fim_geral = datetime.now()
-        self._salvar_no_excel()
+        try:
+            self._salvar_no_excel()
+        except Exception as e:
+            # Falha no log não pode impedir o envio do e-mail de resultado
+            print(f"⚠️  Não foi possível salvar o log em Excel: {e}")
 
         sucesso_lst = [r for r in self._registros if r[5] == "✅ Sucesso"]
         erro_lst    = [r for r in self._registros if r[5] == "❌ Erro"]
@@ -195,14 +199,35 @@ class LogExecucao:
         return resumo
 
 
-    def _salvar_no_excel(self) -> None:
+    def _abrir_ou_criar_planilha(self):
+        """
+        Abre o log existente. Se ele estiver corrompido (ex.: um save interrompido),
+        renomeia o arquivo ruim para *_corrompido_<data_hora>.xlsx e cria um log novo.
+        """
         if os.path.exists(self.caminho):
-            wb = load_workbook(self.caminho)
-            ws = wb["Log"]
-        else:
-            wb = Workbook()
-            _criar_planilha(wb)
-            ws = wb["Log"]
+            erro = None
+            # Abre o arquivo manualmente para garantir que ele seja fechado mesmo se
+            # o load_workbook falhar (senão o Windows bloqueia a renomeação abaixo)
+            with open(self.caminho, "rb") as arquivo:
+                try:
+                    wb = load_workbook(arquivo)
+                    ws = wb["Log"]
+                except Exception as e:
+                    erro = e
+            if erro is None:
+                return wb, ws
+
+            sufixo = datetime.now().strftime("%Y%m%d_%H%M%S")
+            corrompido = self.caminho.replace(".xlsx", f"_corrompido_{sufixo}.xlsx")
+            os.replace(self.caminho, corrompido)
+            print(f"⚠️  Log existente inválido ({erro}). Renomeado para: {corrompido}")
+
+        wb = Workbook()
+        _criar_planilha(wb)
+        return wb, wb["Log"]
+
+    def _salvar_no_excel(self) -> None:
+        wb, ws = self._abrir_ou_criar_planilha()
 
         prox_linha = ws.max_row + 1
 
@@ -217,9 +242,18 @@ class LogExecucao:
         ws.auto_filter.ref = f"A1:{ultima_col}{ws.max_row}"
 
         try:
-            wb.save(self.caminho)
+            # Salva primeiro num arquivo temporário e só depois substitui o log:
+            # se o processo for interrompido no meio do save, o log original fica intacto.
+            temporario = self.caminho.replace(".xlsx", "_tmp.xlsx")
+            wb.save(temporario)
+            os.replace(temporario, self.caminho)
             print(f"💾 Log salvo em: {self.caminho}")
         except PermissionError:
+            if os.path.exists(temporario):
+                try:
+                    os.remove(temporario)
+                except OSError:
+                    pass
             alt = self.caminho.replace(".xlsx", f"_{datetime.now().strftime('%H%M%S')}.xlsx")
             wb.save(alt)
             print(f"⚠️  Arquivo em uso. Log salvo em: {alt}")
