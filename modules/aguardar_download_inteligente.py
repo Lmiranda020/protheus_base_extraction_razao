@@ -2,6 +2,8 @@ import os
 import time
 import psutil
 import win32com.client
+import win32gui
+import win32process
 import pythoncom
 
 
@@ -17,31 +19,73 @@ def listar_pids_excel() -> set:
     return pids
 
 
-def verificar_e_aguardar_excel_aberto(pids_ignorar=None, timeout=320, intervalo=3):
+def pids_excel_com_arquivo(nome_arquivo, pids_candidatos) -> set:
     """
-    Aguarda um Excel NOVO abrir (ignorando os PIDs em 'pids_ignorar', que já estavam
-    abertos antes do download) por até 'timeout' segundos.
+    Retorna os PIDs (dentre 'pids_candidatos') que têm uma janela visível do Excel
+    cujo título contém 'nome_arquivo' — ou seja, o Excel que está com aquele arquivo aberto.
+    """
+    if not pids_candidatos:
+        return set()
+
+    nome = nome_arquivo.lower()
+    encontrados = set()
+
+    def _verificar_janela(hwnd, _):
+        try:
+            if win32gui.IsWindowVisible(hwnd) and nome in win32gui.GetWindowText(hwnd).lower():
+                _, pid = win32process.GetWindowThreadProcessId(hwnd)
+                if pid in pids_candidatos:
+                    encontrados.add(pid)
+        except Exception:
+            pass
+        return True
+
+    win32gui.EnumWindows(_verificar_janela, None)
+    return encontrados
+
+
+def verificar_e_aguardar_excel_aberto(pids_ignorar=None, nome_arquivo=None, timeout=320, intervalo=3):
+    """
+    Aguarda o Excel aberto pelo download (ignorando os PIDs em 'pids_ignorar', que já
+    estavam abertos antes) por até 'timeout' segundos.
+
+    Se 'nome_arquivo' for informado, só considera aberto quando houver uma janela do
+    Excel com esse arquivo no título. Isso evita fechar o Excel antes de ele carregar
+    o arquivo (arquivos grandes demoram a abrir).
 
     Returns:
-        set com os PIDs dos novos processos do Excel (vazio se esgotou o tempo).
+        set com os PIDs a fechar (vazio se nenhum Excel novo apareceu).
     """
     pids_ignorar = pids_ignorar or set()
-    print(f"⏳ Aguardando Excel abrir (timeout: {timeout}s)...")
+    alvo = f"'{nome_arquivo}'" if nome_arquivo else "um Excel novo"
+    print(f"⏳ Aguardando o Excel abrir {alvo} (timeout: {timeout}s)...")
     tempo_inicio = time.time()
+    novos = set()
 
     while (time.time() - tempo_inicio) < timeout:
         try:
             novos = listar_pids_excel() - pids_ignorar
-            if novos:
+            if novos and not nome_arquivo:
                 print(f"✅ Excel detectado após {(time.time() - tempo_inicio):.1f}s")
                 # aguarda um pouco para garantir que o Excel tenha aberto completamente
                 time.sleep(10)
                 return novos
+
+            com_arquivo = pids_excel_com_arquivo(nome_arquivo, novos) if nome_arquivo else set()
+            if com_arquivo:
+                print(f"✅ Excel com o arquivo aberto detectado após {(time.time() - tempo_inicio):.1f}s")
+                time.sleep(3)
+                return com_arquivo
         except Exception as e:
             print(f"⚠️ Erro ao verificar Excel: {e}")
 
         time.sleep(intervalo)
-        print(f"🔍 Excel ainda não abriu... {int(time.time() - tempo_inicio)}s / {timeout}s")
+        print(f"🔍 Excel ainda não abriu o arquivo... {int(time.time() - tempo_inicio)}s / {timeout}s")
+
+    if novos:
+        # Abriu Excel novo, mas a janela com o arquivo não foi identificada: fecha os novos
+        print(f"⚠️ Janela do arquivo não identificada após {timeout}s — usando os Excel novos")
+        return novos
 
     print(f"⚠️ Excel não foi detectado após {timeout}s")
     return set()
@@ -53,16 +97,36 @@ def tem_extensao(arquivo):
     return '.' in nome and len(os.path.splitext(nome)[1]) > 0
 
 
-def aguardar_arquivo_estavel(caminho, timeout=120, intervalo=2, leituras_estaveis=3) -> bool:
+def xml_excel_completo(caminho) -> bool:
     """
-    Aguarda o tamanho do arquivo parar de mudar (download/gravação concluídos).
+    Para o XML gerado pelo Protheus (arquivo sem extensão), confere se o arquivo já
+    termina com a tag de fechamento </Workbook>, ou seja, se a gravação terminou.
+    Arquivos com extensão não são verificados (retorna True).
+    """
+    if tem_extensao(caminho):
+        return True
+    try:
+        with open(caminho, "rb") as arquivo:
+            arquivo.seek(0, os.SEEK_END)
+            arquivo.seek(max(0, arquivo.tell() - 4096))
+            return b"</Workbook>" in arquivo.read()
+    except OSError:
+        return False
+
+
+def aguardar_arquivo_estavel(caminho, timeout=900, intervalo=3, leituras_estaveis=5) -> bool:
+    """
+    Aguarda a gravação do arquivo terminar: o tamanho precisa parar de mudar por
+    'leituras_estaveis' leituras seguidas e, no caso do XML do Protheus, o arquivo
+    precisa terminar com </Workbook>. Arquivos grandes levam vários minutos.
 
     Returns:
-        True se o tamanho ficou estável por 'leituras_estaveis' leituras seguidas.
+        True se o arquivo ficou estável e completo dentro do 'timeout'.
     """
     tempo_inicio = time.time()
     tamanho_anterior = -1
     estaveis = 0
+    ultimo_aviso = 0
 
     while time.time() - tempo_inicio < timeout:
         try:
@@ -73,15 +137,53 @@ def aguardar_arquivo_estavel(caminho, timeout=120, intervalo=2, leituras_estavei
         if tamanho > 0 and tamanho == tamanho_anterior:
             estaveis += 1
             if estaveis >= leituras_estaveis:
-                print(f"✅ Arquivo estável ({tamanho} bytes)")
-                return True
+                if xml_excel_completo(caminho):
+                    print(f"✅ Arquivo estável e completo ({tamanho} bytes)")
+                    return True
+                # Tamanho parado, mas o XML ainda não foi fechado: o Protheus segue gravando
+                estaveis = 0
         else:
             estaveis = 0
+
+        decorrido = time.time() - tempo_inicio
+        if decorrido - ultimo_aviso >= 30:
+            ultimo_aviso = decorrido
+            print(f"⏱️  Aguardando gravação do arquivo... {int(decorrido)}s / {timeout}s "
+                  f"({max(tamanho, 0) / 1024 / 1024:.1f} MB)")
 
         tamanho_anterior = tamanho
         time.sleep(intervalo)
 
     print(f"⚠️ Arquivo não estabilizou em {timeout}s — seguindo mesmo assim")
+    return False
+
+
+def remover_arquivo_original(caminho, pids_ignorar=None, tentativas=3) -> bool:
+    """
+    Apaga o arquivo original após a conversão. Se ele estiver aberto em um Excel
+    que abriu depois do download, fecha esse Excel e tenta de novo.
+    """
+    pids_ignorar = pids_ignorar or set()
+    nome = os.path.basename(caminho)
+
+    for tentativa in range(1, tentativas + 1):
+        try:
+            os.remove(caminho)
+            print(f"🗑️ Arquivo original removido: {nome}")
+            return True
+        except FileNotFoundError:
+            return True
+        except OSError as e:
+            print(f"⚠️ Não foi possível remover o arquivo original ({tentativa}/{tentativas}): {e}")
+            if tentativa == tentativas:
+                break
+            novos = listar_pids_excel() - pids_ignorar
+            alvo = pids_excel_com_arquivo(os.path.splitext(nome)[0], novos) or novos
+            if alvo:
+                print("🔄 Fechando Excel que está com o arquivo original aberto...")
+                fechar_excel(pids=alvo)
+            time.sleep(5)
+
     return False
 
 
@@ -272,7 +374,10 @@ def aguardar_download_completo(diretorio_temp, nome_arquivo_esperado, inicio_dow
 
     # Fase 3: Aguarda o Excel do download abrir e depois fecha somente ele
     novos_pids = verificar_e_aguardar_excel_aberto(
-        pids_ignorar=pids_excel_antes, timeout=timeout_excel, intervalo=3
+        pids_ignorar=pids_excel_antes,
+        nome_arquivo=os.path.splitext(os.path.basename(arquivo_novo))[0],
+        timeout=timeout_excel,
+        intervalo=3,
     )
     if novos_pids:
         print("🔄 Fechando Excel aberto pelo download...")
@@ -301,12 +406,8 @@ def aguardar_download_completo(diretorio_temp, nome_arquivo_esperado, inicio_dow
     )
 
     if sucesso:
-        # Remove o arquivo original após conversão
-        try:
-            os.remove(arquivo_novo)
-            print(f"🗑️ Arquivo original removido: {os.path.basename(arquivo_novo)}")
-        except Exception as e:
-            print(f"⚠️ Não foi possível remover arquivo original: {e}")
+        # Remove o arquivo original após conversão (fecha o Excel que o prender, se houver)
+        remover_arquivo_original(arquivo_novo, pids_ignorar=pids_excel_antes)
 
         tempo_decorrido = time.time() - tempo_inicio
         print(f"✅ Processo concluído em {tempo_decorrido:.1f} segundos!")
